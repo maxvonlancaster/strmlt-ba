@@ -104,7 +104,7 @@ confidence_threshold = st.sidebar.slider(
 	"Requirement Confidence Threshold",
 	min_value=0.0,
 	max_value=1.0,
-	value=0.5,
+	value=0.3,
 	step=0.05,
 	help="Minimum confidence score for text to be classified as a requirement"
 )
