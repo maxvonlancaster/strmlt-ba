@@ -121,6 +121,9 @@ class RequirementProcessor:
 
 	def _add_entity_patterns(self):
 		"""Add spaCy entity ruler patterns for requirement extraction"""
+		# Check if we have a tagger for POS-based patterns
+		has_tagger = "tagger" in self.nlp.pipe_names or "morphologizer" in self.nlp.pipe_names
+
 		patterns = [
 			# STAKEHOLDER: expanded list and phrases
 			{"label": "STAKEHOLDER", "pattern": [{"LOWER": {"IN": ["user", "admin", "administrator", "manager", "client", "customer", "organization", "we", "our", "the company", "developer", "stakeholder", "end-user", "end user", "system admin"]}}]},
@@ -131,27 +134,47 @@ class RequirementProcessor:
 			{"label": "SYSTEM", "pattern": [{"LOWER": {"IN": ["system", "platform", "application", "software", "service", "module", "component", "app"]}}]},
 			{"label": "SYSTEM", "pattern": [{"LOWER": "the"}, {"LOWER": {"IN": ["system", "application", "platform", "app"]}}]},
 
-			# ACTION: modal verbs and common requirement verbs
-			{"label": "ACTION", "pattern": [{"LOWER": {"IN": ["shall", "must", "should", "will"]}}, {"POS": "VERB"}]},
-			{"label": "ACTION", "pattern": [{"POS": "VERB", "LEMMA": {"IN": ["generate", "export", "validate", "allow", "provide", "support", "handle", "process", "create", "update", "delete", "send", "receive", "display", "store", "retrieve", "authenticate", "authorize", "manage", "track", "schedule", "browse", "purchase", "integrate"]}}]},
+			# ACTION: modal verbs and common requirement verbs (without POS for blank models)
+			{"label": "ACTION", "pattern": [{"LOWER": {"IN": ["shall", "must", "should", "will"]}}]},
+		]
 
-			# OBJECT: software-related nouns
-			{"label": "OBJECT", "pattern": [{"POS": "NOUN", "LEMMA": {"IN": ["report", "data", "file", "user", "password", "account", "session", "email", "notification", "dashboard", "interface", "database", "api", "request", "response", "order", "payment", "booking", "delivery", "tracking"]}}]},
+		# Only add POS-dependent patterns if tagger is available
+		if has_tagger:
+			patterns.extend([
+				{"label": "ACTION", "pattern": [{"POS": "VERB", "LEMMA": {"IN": ["generate", "export", "validate", "allow", "provide", "support", "handle", "process", "create", "update", "delete", "send", "receive", "display", "store", "retrieve", "authenticate", "authorize", "manage", "track", "schedule", "browse", "purchase", "integrate"]}}]},
 
-			# CONDITION: when/if/after clauses
-			{"label": "CONDITION", "pattern": [{"LOWER": {"IN": ["when", "if", "after", "before", "while"]}}, {"POS": "DET", "OP": "?"}, {"POS": "NOUN"}]},
-			{"label": "CONDITION", "pattern": [{"LOWER": "upon"}, {"POS": "VERB"}]},
+				# OBJECT: software-related nouns
+				{"label": "OBJECT", "pattern": [{"POS": "NOUN", "LEMMA": {"IN": ["report", "data", "file", "user", "password", "account", "session", "email", "notification", "dashboard", "interface", "database", "api", "request", "response", "order", "payment", "booking", "delivery", "tracking"]}}]},
 
-			# CONSTRAINT: time and quantity constraints
-			{"label": "CONSTRAINT", "pattern": [{"LOWER": {"IN": ["within", "less", "than", "no more", "at least", "maximum", "minimum"]}}, {"POS": "NUM"}, {"LOWER": {"IN": ["seconds", "minutes", "hours", "days", "ms", "milliseconds"]}}]},
-			{"label": "CONSTRAINT", "pattern": [{"POS": "NUM"}, {"LOWER": {"IN": ["seconds", "minutes", "hours", "days", "ms", "milliseconds"]}}]},
+				# CONDITION: when/if/after clauses
+				{"label": "CONDITION", "pattern": [{"LOWER": {"IN": ["when", "if", "after", "before", "while"]}}, {"POS": "DET", "OP": "?"}, {"POS": "NOUN"}]},
+				{"label": "CONDITION", "pattern": [{"LOWER": "upon"}, {"POS": "VERB"}]},
 
+				# CONSTRAINT: time and quantity constraints
+				{"label": "CONSTRAINT", "pattern": [{"LOWER": {"IN": ["within", "less", "than", "no more", "at least", "maximum", "minimum"]}}, {"POS": "NUM"}, {"LOWER": {"IN": ["seconds", "minutes", "hours", "days", "ms", "milliseconds"]}}]},
+				{"label": "CONSTRAINT", "pattern": [{"POS": "NUM"}, {"LOWER": {"IN": ["seconds", "minutes", "hours", "days", "ms", "milliseconds"]}}]},
+			])
+		else:
+			# Fallback patterns for blank model without POS tags
+			patterns.extend([
+				# OBJECT: common object keywords
+				{"label": "OBJECT", "pattern": [{"LOWER": {"IN": ["report", "data", "file", "user", "password", "account", "session", "email", "notification", "dashboard", "interface", "database", "api", "request", "response", "order", "payment", "booking", "delivery", "tracking"]}}]},
+
+				# CONDITION: when/if/after clauses
+				{"label": "CONDITION", "pattern": [{"LOWER": {"IN": ["when", "if", "after", "before", "while"]}}]},
+				{"label": "CONDITION", "pattern": [{"LOWER": "upon"}]},
+
+				# CONSTRAINT: time and quantity constraints
+				{"label": "CONSTRAINT", "pattern": [{"LOWER": {"IN": ["within", "less", "than", "no more", "at least", "maximum", "minimum"]}}]},
+			])
+
+		patterns.extend([
 			# PRIORITY
 			{"label": "PRIORITY", "pattern": [{"LOWER": {"IN": ["high", "medium", "low", "critical", "urgent"]}}]},
 
 			# QUALITY: Non-functional requirements
 			{"label": "QUALITY", "pattern": [{"LOWER": {"IN": ["secure", "scalable", "reliable", "fast", "efficient", "user-friendly", "robust", "maintainable", "portable", "available", "responsive", "performant", "interoperable", "compatible"]}}]},
-		]
+		])
 
 		# Only add entity_ruler before "ner" if "ner" component exists
 		if "ner" in self.nlp.pipe_names:
