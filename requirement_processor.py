@@ -153,7 +153,11 @@ class RequirementProcessor:
 			{"label": "QUALITY", "pattern": [{"LOWER": {"IN": ["secure", "scalable", "reliable", "fast", "efficient", "user-friendly", "robust", "maintainable", "portable", "available", "responsive", "performant", "interoperable", "compatible"]}}]},
 		]
 
-		ruler = self.nlp.add_pipe("entity_ruler", before="ner", config={"overwrite_ents": True})
+		# Only add entity_ruler before "ner" if "ner" component exists
+		if "ner" in self.nlp.pipe_names:
+			ruler = self.nlp.add_pipe("entity_ruler", before="ner", config={"overwrite_ents": True})
+		else:
+			ruler = self.nlp.add_pipe("entity_ruler", config={"overwrite_ents": True})
 		ruler.add_patterns(patterns)
 
 	def _extract_dependency_structure(self, doc, result: Dict) -> Dict:
