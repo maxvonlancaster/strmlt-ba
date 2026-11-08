@@ -77,13 +77,7 @@ class RequirementProcessor:
 
 	def __init__(self):
 		"""Initialize the requirement processor with spaCy model and patterns"""
-		try:
-			self.nlp = spacy.load("en_core_web_sm")
-		except OSError:
-			print("Downloading en_core_web_sm...")
-			import os
-			os.system("python -m spacy download en_core_web_sm")
-			self.nlp = spacy.load("en_core_web_sm")
+		self.nlp = self._load_spacy_model()
 
 		# Remove existing entity_ruler if present
 		if "entity_ruler" in self.nlp.pipe_names:
@@ -91,6 +85,39 @@ class RequirementProcessor:
 
 		# Add entity ruler with patterns
 		self._add_entity_patterns()
+
+	def _load_spacy_model(self):
+		"""Load spaCy model with multiple fallback strategies"""
+		import subprocess
+		import sys
+
+		# Try to load the model
+		try:
+			return spacy.load("en_core_web_sm")
+		except OSError:
+			pass
+
+		# If not found, try to download it using subprocess
+		try:
+			print("Downloading spaCy model 'en_core_web_sm'...")
+			subprocess.check_call(
+				[sys.executable, "-m", "spacy", "download", "en_core_web_sm"],
+				stdout=subprocess.DEVNULL,
+				stderr=subprocess.DEVNULL
+			)
+			return spacy.load("en_core_web_sm")
+		except Exception as e:
+			print(f"Warning: Could not download model: {e}")
+			print("Attempting to use blank English model instead...")
+
+		# Fallback to blank English model if download fails
+		try:
+			return spacy.blank("en")
+		except Exception as e:
+			raise RuntimeError(
+				f"Failed to load or create spaCy model. Error: {e}\n"
+				"Please try running locally: python -m spacy download en_core_web_sm"
+			)
 
 	def _add_entity_patterns(self):
 		"""Add spaCy entity ruler patterns for requirement extraction"""
