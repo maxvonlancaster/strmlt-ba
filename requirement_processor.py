@@ -387,11 +387,14 @@ def create_ticket(entities: Dict, is_requirement: bool, requirement_score: float
 	"""
 	Create a business requirement ticket from extracted entities
 	"""
+	action = entities.get('action') or 'Unknown'
+	object_name = entities.get('object') or 'requirement'
+
 	ticket = {
 		"ticket_id": "REQ-" + str(hash(entities["originalText"]))[-8:].upper(),
 		"is_requirement": is_requirement,
 		"requirement_confidence": requirement_score,
-		"title": f"{entities.get('action', 'Unknown').upper()} - {entities.get('object', 'requirement')}",
+		"title": f"{action.upper()} - {object_name}",
 		"description": entities["originalText"],
 		"stakeholder": entities.get("stakeholder"),
 		"system": entities.get("system"),
