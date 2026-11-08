@@ -453,10 +453,16 @@ with st.expander("📚 Example Requirements"):
 		"The system should support at least 1000 concurrent users with response times under 2 seconds"
 	]
 
+	def set_example(example_text):
+		st.session_state.user_input = example_text
+
 	for i, example in enumerate(examples, 1):
-		if st.button(f"📌 Example {i}: {example[:50]}...", key=f"example_{i}"):
-			st.session_state.user_input = example
-			st.rerun()
+		st.button(
+			f"📌 Example {i}: {example[:50]}...",
+			key=f"example_{i}",
+			on_click=set_example,
+			args=(example,)
+		)
 
 # Footer
 st.markdown("---")
